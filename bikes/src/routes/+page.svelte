@@ -36,6 +36,11 @@
             type: "geojson",
             data: "https://bostonopendata-boston.opendata.arcgis.com/datasets/boston::existing-bike-network-2022.geojson?outSR=%7B%22latestWkid%22%3A3857%2C%22wkid%22%3A102100%7D",
         });
+        map.addSource("cambridge_route", {
+            type: "geojson",
+            data: "https://raw.githubusercontent.com/cambridgegis/cambridgegis_data/main/Recreation/Bike_Facilities/RECREATION_BikeFacilities.geojson"
+        });
+
 
         map.addLayer({
             id: "SOME_ID", // A name for our layer (up to you)
@@ -45,12 +50,18 @@
                 "line-color": "#FF0000",
             },
         });
+
+        map.addLayer({
+            id: "cambridge_route",
+            type: "line",
+            source: "cambridge_route",
+            paint: {
+                "line-color": "#4f4f00",
+                "line-width": 3,
+                "line-opacity": 0.5,
+            },
+        });
     }
-
-    onMount(() => {
-        initMap();
-    });
-
 
     async function loadStationData() {
         try {
@@ -69,13 +80,47 @@
         }
     }
 
+    function getCoords (station) {
+        let point = new mapboxgl.LngLat(+station.Long, +station.Lat);
+        let {x, y} = map.project(point);
+        return {cx: x, cy: y};
+    }
 
+    onMount(() => {
+        initMap();
+        loadStationData();
+    });
+
+    $: map?.on("move", evt => mapViewChanged++);
 
 </script>
 
 <style>
     @import url("../../global.css");
+    #map {
+        flex: 1;
+    }
+
+    #map svg {
+        position: absolute;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+    }
 </style>
 
-<div id="map" />
+<div id="map">
+    <svg>
+        {#key mapViewChanged}
+        <!-- render stations here -->
+         {#each stations as station}
+            <circle { ...getCoords(station) } r="5" fill="steelblue" />
+        {/each}
+
+        {/key}
+
+    </svg>
+</div>
+
 
